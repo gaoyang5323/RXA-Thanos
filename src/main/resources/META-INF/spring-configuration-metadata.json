@@ -1,0 +1,17 @@
+{
+  "groups": [
+    {
+      "name": "rxa-thanos",
+      "type": "com.kakuiwong.rxathanos",
+      "sourceType": "com.kakuiwong.rxathanos"
+    }
+  ],
+  "properties": [
+    {
+      "name": "",
+      "type": "java.lang.Integer",
+      "description": ""
+    }
+  ],
+  "hints": []
+}
