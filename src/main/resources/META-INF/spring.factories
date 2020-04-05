@@ -1,3 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.kakuiwong.rxathanos.core.Interception.RxaWvcConfig,\
-com.kakuiwong.rxathanos.core.aop.RxaAopConfig
+com.kakuiwong.rxathanos.core.config.RxaConfig

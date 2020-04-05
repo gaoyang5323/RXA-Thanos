@@ -1,6 +1,9 @@
 package com.kakuiwong.rxathanos.util;
 
-import com.sun.istack.internal.NotNull;
+import com.kakuiwong.rxathanos.bean.RxaContextPO;
+import org.springframework.util.StringUtils;
+
+import java.util.function.Supplier;
 
 /**
  * @author gaoyang
@@ -8,17 +11,23 @@ import com.sun.istack.internal.NotNull;
  */
 public class RxaContext {
 
-    private final static ThreadLocal<String> local = new ThreadLocal();
+    private final static ThreadLocal<RxaContextPO> local = new ThreadLocal();
 
     public static String getRxaId() {
-        return local.get();
+        return local.get().getRxaId();
     }
 
-    public static void bindRxaId(@NotNull String id){
-        local.set(id);
-    }
-
-    public static void cleanCurrentContext(){
+    public static void cleanCurrentContext() {
         local.remove();
+    }
+
+    private static void setRxa(RxaContextPO po) {
+        local.set(po);
+    }
+
+    public static void bindRxa(Supplier<RxaContextPO> supplier) {
+        if (StringUtils.isEmpty(local.get())) {
+            setRxa(supplier.get());
+        }
     }
 }
