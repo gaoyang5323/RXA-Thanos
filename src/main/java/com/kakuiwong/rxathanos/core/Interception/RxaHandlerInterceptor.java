@@ -18,8 +18,12 @@ public class RxaHandlerInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String rxaId = request.getHeader(RxaContant.RXA_HEADER);
+        String rxaSub = request.getHeader(RxaContant.RXA_SUB);
         if (!StringUtils.isEmpty(rxaId)) {
             RxaContext.bindRxa(() -> RxaContextPO.create(rxaId, RxaContextStatusEnum.SUB));
+        }
+        if (!StringUtils.isEmpty(rxaSub)) {
+            RxaContext.bindSub(rxaSub);
         }
         return true;
     }

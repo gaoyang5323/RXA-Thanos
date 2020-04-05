@@ -5,8 +5,15 @@ package com.kakuiwong.rxathanos.bean;
  * @email 785175323@qq.com
  */
 public enum RxaContextStatusEnum {
-    BASE("主事务"), SUB("从事务");
+    BASE("RXA_BASE"), SUB("RXA_SUB");
 
-    RxaContextStatusEnum(String s) {
+    private String type;
+
+    RxaContextStatusEnum(String type) {
+        this.type = type;
+    }
+
+    public String rxaType() {
+        return type;
     }
 }

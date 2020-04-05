@@ -6,5 +6,6 @@ package com.kakuiwong.rxathanos.contant;
  */
 public final class RxaContant {
 
-    public final static String RXA_HEADER = "RXA_ID";
+    public static final String RXA_HEADER = "RXA_ID";
+    public static final String RXA_SUB = "RXA_SUB";
 }

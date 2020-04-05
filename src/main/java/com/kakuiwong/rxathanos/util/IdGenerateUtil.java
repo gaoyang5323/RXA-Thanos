@@ -76,7 +76,7 @@ public final class IdGenerateUtil {
         return "127.0.0.1";
     }
 
-    public static String nextId() {
+    public static String nextId(String prex) {
         final ReentrantLock lock = IdGenerateUtil.lock;
         lock.lock();
         try {
@@ -96,7 +96,7 @@ public final class IdGenerateUtil {
             long idLow = ip << ipSfhit | processId << processIdShift | sequence;
             BigInteger idHign = BigInteger.valueOf(timestamp - TH_EPOCH).shiftLeft(timestampShift);
             BigInteger id = idHign.add(BigInteger.valueOf(idLow));
-            return id.toString(10);
+            return prex + id.toString(10);
         } finally {
             lock.unlock();
         }
