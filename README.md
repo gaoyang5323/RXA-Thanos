@@ -19,10 +19,12 @@ RXA-Thanos是一个SpringCloud 分布式事务解决方案,基于Redis框架发�
 直接引入注解到业务方法,其中注解提供了一系列默认及可选填参数
 
     @RxaThanosTransactional
-              
-        //超时时间
+    
+        //超时时间      
+        @AliasFor("timeout")
+        long value() default 10;
         @AliasFor("value")
-        long timeout() default 30;
+        long timeout() default 10;
         //超时时间单位
         TimeUnit timeUnit() default TimeUnit.SECONDS;
         //传播级别

@@ -42,13 +42,13 @@ public class RxaContext {
         baseThreadMap.remove(rxaId);
     }
 
-    public static void bindSubTransaction(String subId, PlatformTransactionManager txManager, TransactionStatus transaction) {
-        subTransactionMap.put(subId, RxaTransactionManagerPO.create(txManager, transaction));
+    public static void bindSubTransaction(PlatformTransactionManager txManager, TransactionStatus transaction) {
+        subTransactionMap.put(RxaContext.getSubId(), RxaTransactionManagerPO.create(txManager, transaction));
     }
 
-    public static void SubTransactionSchedule(String subId, RxaThanosTransactional annotation) {
+    public static void SubTransactionSchedule(RxaThanosTransactional annotation) {
         executor.schedule(() -> {
-            RxaContext.rollBackSub(subId);
+            RxaContext.rollBackSub(RxaContext.getSubId());
         }, annotation.timeout(), annotation.timeUnit());
     }
 

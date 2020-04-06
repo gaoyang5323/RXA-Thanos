@@ -1,6 +1,7 @@
 package com.kakuiwong.rxathanos.core.redis;
 
 import com.kakuiwong.rxathanos.bean.enums.RxaTaskStatusEnum;
+import com.kakuiwong.rxathanos.contant.RxaContant;
 import com.kakuiwong.rxathanos.util.RxaContext;
 
 /**
@@ -11,7 +12,7 @@ public class RxaRedisSubscribeBase implements RxaRedisSubscribe {
 
     @Override
     public void onMessage(String message) {
-        String[] split = message.split(":");
+        String[] split = message.split(RxaContant.RXA_PUBSUB_SPLIT);
         if (split.length != 3) {
             return;
         }
