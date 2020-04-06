@@ -51,7 +51,6 @@ public class RxaAdvisor {
         String rxaId = RxaContext.getRxaId();
         String subId = RxaContext.getSubId();
         TransactionStatus transaction = getTransactionStatus(annotation);
-        RxaContext.changeSub(rxaId, "", RxaTaskStatusEnum.BEGIN);
         try {
             proceed = joinPoint.proceed();
             boolean baseTransaction = RxaContext.isBase();
