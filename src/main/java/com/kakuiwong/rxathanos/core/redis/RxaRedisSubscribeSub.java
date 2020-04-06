@@ -19,11 +19,9 @@ public class RxaRedisSubscribeSub implements RxaRedisSubscribe {
         String subId = split[0];
         String status = split[1];
         RxaTaskStatusEnum statusEnum = RxaTaskStatusEnum.of(status);
-        if (statusEnum.equals(RxaTaskStatusEnum.FAIL)) {
-            RxaContext.rollBackSub(subId);
-        }
         if (statusEnum.equals(RxaTaskStatusEnum.READY)) {
-            RxaContext.commitSub(subId);
+            RxaContext.subReady(subId);
         }
+        RxaContext.unParkThread(subId);
     }
 }

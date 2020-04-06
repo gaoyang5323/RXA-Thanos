@@ -17,7 +17,7 @@ import java.io.IOException;
  * @author gaoyang
  * @email 785175323@qq.com
  */
-public class RxaRequesstInterception implements ClientHttpRequestInterceptor {
+public class RxaRequestInterception implements ClientHttpRequestInterceptor {
 
     @Override
     public ClientHttpResponse intercept(HttpRequest httpRequest, byte[] bytes, ClientHttpRequestExecution clientHttpRequestExecution) throws IOException {

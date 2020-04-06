@@ -19,10 +19,10 @@ import java.util.concurrent.TimeUnit;
 public @interface RxaThanosTransactional {
 
     @AliasFor("timeout")
-    long value() default 30;
+    long value() default 10;
 
     @AliasFor("value")
-    long timeout() default 30;
+    long timeout() default 10;
 
     TimeUnit timeUnit() default TimeUnit.SECONDS;
 

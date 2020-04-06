@@ -19,7 +19,11 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.concurrent.locks.LockSupport;
 
@@ -41,14 +45,13 @@ public class RxaAdvisor {
         this.txManager = txManager;
     }
 
-
     @Pointcut(value = RXATHANOSTRANSACTIONAL)
     public void pointcut() {
     }
 
     //TODO log
     @Around(value = "pointcut()")
-    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+    public void around(ProceedingJoinPoint joinPoint) throws Throwable {
         RxaThanosTransactional annotation = annotation(joinPoint);
         Object result = null;
         boolean isRollbacked = false;
@@ -64,7 +67,7 @@ public class RxaAdvisor {
                         isRollbacked = true;
                         baseRollbackAndsendSubsThrow(transaction, "other services failed");
                     }
-                    RxaContext.bindBaseThread(RxaContext.getRxaId());
+                    RxaContext.bindThread(RxaContext.getRxaId());
                     park(annotation);
                     boolean fail = RxaContext.isFail(RxaContext.getRxaId());
                     if (fail || !RxaContext.isReady(RxaContext.getRxaId())) {
@@ -73,18 +76,27 @@ public class RxaAdvisor {
                     }
                 }
                 baseCommitAndSendSubs(transaction);
+                flush(result);
             }
             if (subTransaction) {
-                RxaContext.bindSubTransaction(txManager, transaction);
-                RxaContext.SubTransactionSchedule(annotation);
+                RxaContext.bindThread(RxaContext.getSubId());
+                RxaContext.subBegin(RxaContext.getSubId());
+                subCommitSendBase();
+                flush(result);
+                park(annotation);
+                if (RxaContext.subIsReady(RxaContext.getSubId())) {
+                    subCommit(transaction);
+                } else {
+                    subRollbackAndSendBase(RxaContext.getSubId(), RxaContext.getRxaId(), transaction);
+                }
             }
         } catch (Throwable ex) {
             rollback(annotation, ex, transaction, isRollbacked);
         } finally {
             RxaContext.cleanCurrentContext();
         }
-        return result;
     }
+
 
     private void rollback(RxaThanosTransactional annotation, Throwable ex,
                           TransactionStatus transaction, boolean isRollbacked) throws Throwable {
@@ -99,16 +111,37 @@ public class RxaAdvisor {
             if (RxaContext.isBase()) {
                 baseRollbackAndsendSubsThrow(transaction, null);
             } else {
-                subRollbackAndSendBase(RxaContext.getSubId(), RxaContext.getRxaId());
+                subRollbackAndSendBase(RxaContext.getSubId(), RxaContext.getRxaId(), transaction);
             }
         }
         throw ex;
     }
 
+    private void flush(Object result) throws IOException {
+        PrintWriter writer = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse().getWriter();
+        writer.print(result);
+        writer.flush();
+        writer.close();
+    }
+
     //-----------------------------------------------------start-sub----------------------------------------------------
-    public void subRollbackAndSendBase(String subId, String rxaId) {
-        RxaContext.rollBackSub(subId);
-        rxaRedisPub.pub(RxaContextStatusEnum.BASE.rxaType(), rxaId + RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.FAIL.status());
+
+    private void subCommit(TransactionStatus transaction) {
+        txManager.commit(transaction);
+        RxaContext.subStatusClean(RxaContext.getSubId());
+    }
+
+    public void subRollbackAndSendBase(String subId, String rxaId, TransactionStatus transaction) {
+        rollBackCurrent(transaction);
+        rxaRedisPub.pub(RxaContextStatusEnum.BASE.rxaType(), rxaId +
+                RxaContant.RXA_PUBSUB_SPLIT + subId +
+                RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.FAIL.status());
+    }
+
+    public void subCommitSendBase() {
+        rxaRedisPub.pub(RxaContextStatusEnum.BASE.rxaType(), RxaContext.getRxaId() +
+                RxaContant.RXA_PUBSUB_SPLIT + RxaContext.getSubId() +
+                RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.READY.status());
     }
     //-----------------------------------------------------end-sub------------------------------------------------------
 
@@ -137,7 +170,7 @@ public class RxaAdvisor {
     }
 
     private void baseRollbackAndsendSubsThrow(TransactionStatus transaction, String throwMessage) {
-        rollbackBase(transaction);
+        rollBackCurrent(transaction);
         sendRollbackToSubs(RxaContext.getRxaId());
         if (throwMessage != null) {
             throw new RxaThanosException(throwMessage);
@@ -148,7 +181,7 @@ public class RxaAdvisor {
         txManager.commit(transaction);
     }
 
-    private void rollbackBase(TransactionStatus transaction) {
+    private void rollBackCurrent(TransactionStatus transaction) {
         txManager.rollback(transaction);
     }
 

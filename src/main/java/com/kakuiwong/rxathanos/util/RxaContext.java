@@ -1,21 +1,13 @@
 package com.kakuiwong.rxathanos.util;
 
-import com.kakuiwong.rxathanos.annotation.RxaThanosTransactional;
 import com.kakuiwong.rxathanos.bean.RxaContextPO;
-import com.kakuiwong.rxathanos.bean.RxaTransactionManagerPO;
 import com.kakuiwong.rxathanos.bean.enums.RxaContextStatusEnum;
 import com.kakuiwong.rxathanos.bean.enums.RxaTaskStatusEnum;
-import com.kakuiwong.rxathanos.contant.RxaContant;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -31,44 +23,28 @@ public class RxaContext {
     private final static ThreadLocal<String> localSub = new ThreadLocal();
     private final static ConcurrentHashMap<String, ConcurrentHashMap<String, RxaTaskStatusEnum>> taskMap = new ConcurrentHashMap(INITIALCAPACITY);
     private final static ConcurrentHashMap<String, Thread> baseThreadMap = new ConcurrentHashMap(INITIALCAPACITY);
-    private final static ConcurrentHashMap<String, RxaTransactionManagerPO> subTransactionMap = new ConcurrentHashMap(INITIALCAPACITY);
-    private final static LongAdder adder = new LongAdder();
-    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(20, runnable -> {
-        adder.increment();
-        return new Thread(runnable, RxaContant.SCHEDULED_THREAD_NAME + adder.intValue());
-    });
+    private final static ConcurrentHashMap<String, Boolean> subStatusMap = new ConcurrentHashMap(INITIALCAPACITY);
+
+
+    public static void subReady(String subId) {
+        subStatusMap.put(subId, true);
+    }
+
+    public static void subBegin(String subId) {
+        subStatusMap.put(subId, false);
+    }
+
+    public static void subStatusClean(String subId) {
+        subStatusMap.remove(subId);
+    }
+
+    public static boolean subIsReady(String subId) {
+        Boolean aBoolean = subStatusMap.get(subId);
+        return aBoolean == null ? false : aBoolean;
+    }
 
     private static void removeBaseThreadMap(String rxaId) {
         baseThreadMap.remove(rxaId);
-    }
-
-    public static void bindSubTransaction(PlatformTransactionManager txManager, TransactionStatus transaction) {
-        subTransactionMap.put(RxaContext.getSubId(), RxaTransactionManagerPO.create(txManager, transaction));
-    }
-
-    public static void SubTransactionSchedule(RxaThanosTransactional annotation) {
-        executor.schedule(() -> {
-            RxaContext.rollBackSub(RxaContext.getSubId());
-        }, annotation.timeout(), annotation.timeUnit());
-    }
-
-    public static void commitSub(String subId) {
-        RxaTransactionManagerPO rxaTransactionManagerPO = subTransactionMap.get(subId);
-        rxaTransactionManagerPO.getTxManager().commit(rxaTransactionManagerPO.getTransaction());
-        removeSubTransactionMap(subId);
-    }
-
-    public static void rollBackSub(String subId) {
-        RxaTransactionManagerPO rxaTransactionManagerPO = subTransactionMap.get(subId);
-        if (rxaTransactionManagerPO == null) {
-            return;
-        }
-        rxaTransactionManagerPO.getTxManager().rollback(rxaTransactionManagerPO.getTransaction());
-        removeSubTransactionMap(subId);
-    }
-
-    private static void removeSubTransactionMap(String subId) {
-        subTransactionMap.remove(subId);
     }
 
     public static List<String> subIds(String rxaId) {
@@ -80,7 +56,7 @@ public class RxaContext {
     }
 
 
-    public static void bindBaseThread(String rxaId) {
+    public static void bindThread(String rxaId) {
         baseThreadMap.put(rxaId, Thread.currentThread());
     }
 
