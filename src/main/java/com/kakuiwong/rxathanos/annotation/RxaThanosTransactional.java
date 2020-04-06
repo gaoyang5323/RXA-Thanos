@@ -2,6 +2,8 @@ package com.kakuiwong.rxathanos.annotation;
 
 
 import org.springframework.core.annotation.AliasFor;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.lang.annotation.*;
 import java.util.concurrent.TimeUnit;
@@ -16,11 +18,13 @@ import java.util.concurrent.TimeUnit;
 @Inherited
 public @interface RxaThanosTransactional {
 
-    @AliasFor("timeout")
-    long value() default 60;
-
-    @AliasFor("value")
-    long timeout() default 60;
+    long timeout() default 30;
 
     TimeUnit timeUnit() default TimeUnit.SECONDS;
+
+    Propagation propagation() default Propagation.REQUIRED;
+
+    Isolation isolation() default Isolation.DEFAULT;
+
+    Class<? extends Throwable>[] rollbackFor() default {};
 }

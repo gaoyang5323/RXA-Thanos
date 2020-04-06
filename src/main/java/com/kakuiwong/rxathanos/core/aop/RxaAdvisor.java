@@ -2,21 +2,23 @@ package com.kakuiwong.rxathanos.core.aop;
 
 import com.kakuiwong.rxathanos.annotation.RxaThanosTransactional;
 import com.kakuiwong.rxathanos.bean.RxaContextPO;
-import com.kakuiwong.rxathanos.bean.RxaContextStatusEnum;
-import com.kakuiwong.rxathanos.bean.RxaTaskStatusEnum;
+import com.kakuiwong.rxathanos.bean.enums.RxaContextStatusEnum;
+import com.kakuiwong.rxathanos.bean.enums.RxaTaskStatusEnum;
 import com.kakuiwong.rxathanos.contant.RxaContant;
-import com.kakuiwong.rxathanos.core.redis.RxaRedisPub;
+import com.kakuiwong.rxathanos.core.redis.RxaRedisPublisher;
 import com.kakuiwong.rxathanos.exception.RxaThanosException;
 import com.kakuiwong.rxathanos.util.IdGenerateUtil;
 import com.kakuiwong.rxathanos.util.RxaContext;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
+import java.util.Arrays;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -27,76 +29,130 @@ import java.util.concurrent.locks.LockSupport;
 public class RxaAdvisor {
 
     @Autowired
-    private RxaRedisPub rxaRedisPub;
+    private RxaRedisPublisher rxaRedisPub;
 
-    @Pointcut(value = "@annotation(com.kakuiwong.rxathanos.annotation.RxaThanosTransactional)")
-    public void Pointcut() {
+    private PlatformTransactionManager txManager;
+
+    public RxaAdvisor(PlatformTransactionManager txManager) {
+        this.txManager = txManager;
     }
 
-    @Before(value = "Pointcut()")
-    public void before() {
-        RxaContext.bindRxa(() -> RxaContextPO.create(IdGenerateUtil.nextId(RxaContant.RXA_HEADER), RxaContextStatusEnum.BASE));
+
+    @Pointcut(value = "@annotation(annotation)")
+    public void pointcut(RxaThanosTransactional annotation) {
     }
 
-    //Todo
-    @Around(value = "@annotation(annotation)")
-    public Object around(RxaThanosTransactional annotation, ProceedingJoinPoint joinPoint) throws Throwable {
+    //TODO log
+    @Around(value = "pointcut(annotation)")
+    public Object around(ProceedingJoinPoint joinPoint, RxaThanosTransactional annotation) throws Throwable {
         Object proceed = null;
+        boolean isRollbacked = false;
+        RxaContext.bindRxa(() -> RxaContextPO.create(IdGenerateUtil.nextId(RxaContant.RXA_HEADER), RxaContextStatusEnum.BASE));
         String rxaId = RxaContext.getRxaId();
         String subId = RxaContext.getSubId();
+        TransactionStatus transaction = getTransactionStatus(annotation);
+        RxaContext.changeSub(rxaId, "", RxaTaskStatusEnum.BEGIN);
         try {
             proceed = joinPoint.proceed();
-
-            boolean base = RxaContext.isBase();
-            if (base) {
-                //主事务
-                //先判断一次ready,如果false,挂起线程
-                //异步执行,如果所有从事务准备就绪,发送完成到其他 redis 到 从事务,并且当前释放业务线程
-                boolean ready = RxaContext.isReady(rxaId);
-                if (!ready) {
+            boolean baseTransaction = RxaContext.isBase();
+            boolean subTransaction = !baseTransaction;
+            if (baseTransaction) {
+                if (!RxaContext.isReady(rxaId)) {
+                    if (RxaContext.isFail(rxaId)) {
+                        isRollbacked = true;
+                        baseRollbackAndsendSubsThrow(transaction, rxaId, "other services failed");
+                    }
+                    RxaContext.bindBaseThread(RxaContext.getRxaId());
+                    park(annotation);
                     boolean fail = RxaContext.isFail(rxaId);
-                    if (fail) {
-                        throw new RxaThanosException("从事务失败");
-                    }
-                    RxaContext.storeThreadAndSchedule(RxaContext.getRxaId(), annotation.timeout(), annotation.timeUnit());
-                    LockSupport.park();
-                    boolean failTwo = RxaContext.isFail(rxaId);
-                    if (failTwo) {
-                        throw new RxaThanosException("从事务失败回滚");
-                    }
-                    boolean readyTwo = RxaContext.isReady(rxaId);
-                    if (!readyTwo) {
-                        throw new RxaThanosException("超时回滚");
+                    if (fail || !RxaContext.isReady(rxaId)) {
+                        isRollbacked = true;
+                        baseRollbackAndsendSubsThrow(transaction, rxaId, fail ? "other services failed" : "other services timed out");
                     }
                 }
+                baseCommitAndSendSubs(transaction, rxaId);
             }
-            if (!base) {
-                //从事务
-                //直接返回结果,异步挂起当前事务,等待异步提交
-                RxaContext.bindSubTransaction(subId, "当前事务");
-                RxaContext.executor.schedule(() -> {
-                    //超时回滚
-                }, annotation.timeout(), annotation.timeUnit());
+            if (subTransaction) {
+                RxaContext.bindSubTransaction(subId, txManager, transaction);
+                RxaContext.SubTransactionSchedule(subId, annotation);
             }
         } catch (Throwable ex) {
-            if (RxaContext.isBase()) {
-                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-                //发送到其他从事务进行回滚
-                RxaContext.subIds(rxaId).stream().forEach(id -> {
-                    rxaRedisPub.pub(RxaContextStatusEnum.SUB.rxaType(), id + ":" + RxaTaskStatusEnum.FAIL.status());
-                });
-            } else {
-                RxaContext.rollBackSub(subId);
-                //发送失败到主事务回滚
-                rxaRedisPub.pub(RxaContextStatusEnum.BASE.rxaType(), rxaId + ":" + RxaTaskStatusEnum.FAIL.status());
-            }
-            throw ex;
+            rollback(annotation, ex, transaction, rxaId, subId, isRollbacked);
         } finally {
-            if (RxaContext.isBase()) {
-                //提交当前主事务
-            }
             RxaContext.cleanCurrentContext();
         }
         return proceed;
+    }
+
+    private void rollback(RxaThanosTransactional annotation, Throwable ex,
+                          TransactionStatus transaction, String rxaId, String subId, boolean isRollbacked) throws Throwable {
+        Class<? extends Throwable>[] classes = annotation.rollbackFor();
+        if (classes.length > 0) {
+            boolean isRollback = Arrays.stream(classes).anyMatch(cla -> cla.isAssignableFrom(ex.getClass()));
+            if (!isRollback) {
+                throw ex;
+            }
+        }
+        if (!isRollbacked) {
+            if (RxaContext.isBase()) {
+                baseRollbackAndsendSubsThrow(transaction, rxaId, null);
+            } else {
+                subRollbackAndSendBase(subId, rxaId);
+            }
+        }
+        throw ex;
+    }
+
+    //-----------------------------------------------------start-sub----------------------------------------------------
+    public void subRollbackAndSendBase(String subId, String rxaId) {
+        RxaContext.rollBackSub(subId);
+        rxaRedisPub.pub(RxaContextStatusEnum.BASE.rxaType(), rxaId + ":" + RxaTaskStatusEnum.FAIL.status());
+    }
+    //-----------------------------------------------------end-sub------------------------------------------------------
+
+
+    //-----------------------------------------------------start-base---------------------------------------------------
+    private void park(RxaThanosTransactional annotation) {
+        LockSupport.parkNanos(annotation.timeUnit().toNanos(annotation.timeout()));
+    }
+
+    private void baseCommitAndSendSubs(TransactionStatus transaction, String rxaId) {
+        commitBase(transaction);
+        sendCommitToSubs(rxaId);
+    }
+
+    private void baseRollbackAndsendSubsThrow(TransactionStatus transaction, String rxaId, String throwMessage) {
+        rollbackBase(transaction);
+        sendRollbackToSubs(rxaId);
+        if (throwMessage != null) {
+            throw new RxaThanosException(throwMessage);
+        }
+    }
+
+    private void commitBase(TransactionStatus transaction) {
+        txManager.commit(transaction);
+    }
+
+    private void rollbackBase(TransactionStatus transaction) {
+        txManager.rollback(transaction);
+    }
+
+    private void sendCommitToSubs(String rxaId) {
+        RxaContext.subIds(rxaId).stream().forEach(id -> {
+            rxaRedisPub.pub(RxaContextStatusEnum.SUB.rxaType(), id + ":" + RxaTaskStatusEnum.READY.status());
+        });
+    }
+
+    private void sendRollbackToSubs(String rxaId) {
+        RxaContext.subIds(rxaId).stream().forEach(id -> {
+            rxaRedisPub.pub(RxaContextStatusEnum.SUB.rxaType(), id + ":" + RxaTaskStatusEnum.FAIL.status());
+        });
+    }
+    //-----------------------------------------------------end-base-----------------------------------------------------
+
+    private TransactionStatus getTransactionStatus(RxaThanosTransactional annotation) {
+        DefaultTransactionDefinition definition = new DefaultTransactionDefinition(annotation.propagation().value());
+        definition.setIsolationLevel(annotation.isolation().value());
+        return txManager.getTransaction(definition);
     }
 }

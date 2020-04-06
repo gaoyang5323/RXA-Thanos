@@ -1,6 +1,6 @@
 package com.kakuiwong.rxathanos.core.Interception;
 
-import com.kakuiwong.rxathanos.bean.RxaTaskStatusEnum;
+import com.kakuiwong.rxathanos.bean.enums.RxaTaskStatusEnum;
 import com.kakuiwong.rxathanos.contant.RxaContant;
 import com.kakuiwong.rxathanos.util.IdGenerateUtil;
 import com.kakuiwong.rxathanos.util.RxaContext;

@@ -7,7 +7,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * @author gaoyang
  * @email 785175323@qq.com
  */
-public class RxaRedisPub {
+public class RxaRedisPublisher {
 
     @Autowired
     private StringRedisTemplate redisTemplate;

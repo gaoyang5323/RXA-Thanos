@@ -1,4 +1,4 @@
-package com.kakuiwong.rxathanos.bean;
+package com.kakuiwong.rxathanos.bean.enums;
 
 import com.kakuiwong.rxathanos.exception.RxaThanosException;
 

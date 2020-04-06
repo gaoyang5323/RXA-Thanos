@@ -1,9 +1,13 @@
 package com.kakuiwong.rxathanos.util;
 
+import com.kakuiwong.rxathanos.annotation.RxaThanosTransactional;
 import com.kakuiwong.rxathanos.bean.RxaContextPO;
-import com.kakuiwong.rxathanos.bean.RxaContextStatusEnum;
-import com.kakuiwong.rxathanos.bean.RxaTaskStatusEnum;
-import com.kakuiwong.rxathanos.exception.RxaThanosException;
+import com.kakuiwong.rxathanos.bean.RxaTransactionManagerPO;
+import com.kakuiwong.rxathanos.bean.enums.RxaContextStatusEnum;
+import com.kakuiwong.rxathanos.bean.enums.RxaTaskStatusEnum;
+import com.kakuiwong.rxathanos.contant.RxaContant;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
@@ -11,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -27,34 +31,44 @@ public class RxaContext {
     private final static ThreadLocal<String> localSub = new ThreadLocal();
     private final static ConcurrentHashMap<String, ConcurrentHashMap<String, RxaTaskStatusEnum>> taskMap = new ConcurrentHashMap(INITIALCAPACITY);
     private final static ConcurrentHashMap<String, Thread> baseThreadMap = new ConcurrentHashMap(INITIALCAPACITY);
-    public final static ConcurrentHashMap<String, Object> subTransactionMap = new ConcurrentHashMap(INITIALCAPACITY);
-
-    public static ScheduledExecutorService executor = Executors.newScheduledThreadPool(20);
+    private final static ConcurrentHashMap<String, RxaTransactionManagerPO> subTransactionMap = new ConcurrentHashMap(INITIALCAPACITY);
+    private final static LongAdder adder = new LongAdder();
+    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(20, runnable -> {
+        adder.increment();
+        return new Thread(runnable, RxaContant.SCHEDULED_THREAD_NAME + adder.intValue());
+    });
 
     private static void removeBaseThreadMap(String rxaId) {
         baseThreadMap.remove(rxaId);
     }
 
-    public static void bindSubTransaction(String subId, Object tran) {
-        subTransactionMap.put(subId, tran);
+    public static void bindSubTransaction(String subId, PlatformTransactionManager txManager, TransactionStatus transaction) {
+        subTransactionMap.put(subId, RxaTransactionManagerPO.create(txManager, transaction));
     }
 
-    private static void removeSubTransactionMap(String subId) {
-        subTransactionMap.remove(subId);
+    public static void SubTransactionSchedule(String subId, RxaThanosTransactional annotation) {
+        executor.schedule(() -> {
+            RxaContext.rollBackSub(subId);
+        }, annotation.timeout(), annotation.timeUnit());
     }
 
     public static void commitSub(String subId) {
-        subTransactionMap.get(subId);
-        //提交
-
+        RxaTransactionManagerPO rxaTransactionManagerPO = subTransactionMap.get(subId);
+        rxaTransactionManagerPO.getTxManager().commit(rxaTransactionManagerPO.getTransaction());
         removeSubTransactionMap(subId);
     }
 
     public static void rollBackSub(String subId) {
-        subTransactionMap.get(subId);
-        //回滚
-
+        RxaTransactionManagerPO rxaTransactionManagerPO = subTransactionMap.get(subId);
+        if (rxaTransactionManagerPO == null) {
+            return;
+        }
+        rxaTransactionManagerPO.getTxManager().rollback(rxaTransactionManagerPO.getTransaction());
         removeSubTransactionMap(subId);
+    }
+
+    private static void removeSubTransactionMap(String subId) {
+        subTransactionMap.remove(subId);
     }
 
     public static List<String> subIds(String rxaId) {
@@ -66,14 +80,8 @@ public class RxaContext {
     }
 
 
-    public static void storeThreadAndSchedule(String rxaId, Long timeout, TimeUnit timeUnit) {
+    public static void bindBaseThread(String rxaId) {
         baseThreadMap.put(rxaId, Thread.currentThread());
-        executor.schedule(() -> {
-            Thread thread = baseThreadMap.get(rxaId);
-            if (thread != null) {
-                LockSupport.unpark(thread);
-            }
-        }, timeout, timeUnit);
     }
 
     public static void unParkThread(String rxaId) {
@@ -97,7 +105,7 @@ public class RxaContext {
     public static boolean isReady(String rxaId) {
         ConcurrentHashMap<String, RxaTaskStatusEnum> map = taskMap.get(rxaId);
         if (map == null) {
-            throw new RxaThanosException("error nil map");
+            return false;
         }
         if (map.size() == 0) {
             return true;
@@ -108,7 +116,7 @@ public class RxaContext {
     public static boolean isFail(String rxaId) {
         ConcurrentHashMap<String, RxaTaskStatusEnum> map = taskMap.get(rxaId);
         if (map == null) {
-            throw new RxaThanosException("error nil map");
+            return false;
         }
         if (map.size() == 0) {
             return true;

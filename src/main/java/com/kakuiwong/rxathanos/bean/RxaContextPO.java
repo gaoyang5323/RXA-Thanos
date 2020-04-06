@@ -1,5 +1,7 @@
 package com.kakuiwong.rxathanos.bean;
 
+import com.kakuiwong.rxathanos.bean.enums.RxaContextStatusEnum;
+
 /**
  * @author gaoyang
  * @email 785175323@qq.com

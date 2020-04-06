@@ -1,7 +1,7 @@
 package com.kakuiwong.rxathanos.core.Interception;
 
 import com.kakuiwong.rxathanos.bean.RxaContextPO;
-import com.kakuiwong.rxathanos.bean.RxaContextStatusEnum;
+import com.kakuiwong.rxathanos.bean.enums.RxaContextStatusEnum;
 import com.kakuiwong.rxathanos.contant.RxaContant;
 import com.kakuiwong.rxathanos.util.RxaContext;
 import org.springframework.util.StringUtils;
