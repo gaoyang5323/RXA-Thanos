@@ -33,8 +33,6 @@ import java.util.concurrent.locks.LockSupport;
 @Aspect
 public class RxaAdvisor {
 
-    private final static String RXATHANOSTRANSACTIONAL = "@annotation(com.kakuiwong.rxathanos.annotation.RxaThanosTransactional)";
-
     @Autowired
     private RxaPublisher rxaPublisher;
 
@@ -44,14 +42,14 @@ public class RxaAdvisor {
         this.txManager = txManager;
     }
 
-    @Pointcut(value = RXATHANOSTRANSACTIONAL)
+    @Pointcut(value = RxaContant.RXATHANOSTRANSACTIONAL)
     public void pointcut() {
     }
 
     //TODO log
     @Around(value = "pointcut()")
     public void around(ProceedingJoinPoint joinPoint) throws Throwable {
-        RxaContext.bindRxa(() -> RxaContextPO.create(IdGenerateUtil.nextId(RxaContant.RXA_ID_PREX),
+        RxaContext.bindRxa(() -> RxaContextPO.create(IdGenerateUtil.nextId(RxaContant.RXA_ID_PREFIX),
                 RxaContextStatusEnum.BASE));
         RxaThanosTransactional annotation = annotation(joinPoint);
         Object result = null;

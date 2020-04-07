@@ -25,7 +25,7 @@ public class RxaRequestInterception implements ClientHttpRequestInterceptor {
         String rxaId = RxaContext.getRxaId();
         if (!StringUtils.isEmpty(rxaId)) {
             String subId = IdGenerateUtil.nextId(RxaContant.RXA_SUB);
-            requestWrapper.getHeaders().add(RxaContant.RXA_ID_PREX, rxaId);
+            requestWrapper.getHeaders().add(RxaContant.RXA_ID_PREFIX, rxaId);
             requestWrapper.getHeaders().add(RxaContant.RXA_SUB, subId);
             RxaContext.changeSub(rxaId, subId, RxaTaskStatusEnum.BEGIN);
         }

@@ -1,2 +1,4 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.kakuiwong.rxathanos.config.RxaConfig
+com.kakuiwong.rxathanos.config.RxaConfiguration,\
+com.kakuiwong.rxathanos.config.RxaMqConfiguration,\
+com.kakuiwong.rxathanos.config.RxaRedisConfiguration

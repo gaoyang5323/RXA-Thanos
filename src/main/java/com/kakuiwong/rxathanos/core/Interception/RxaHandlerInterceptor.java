@@ -27,7 +27,7 @@ public class RxaHandlerInterceptor implements HandlerInterceptor {
                 return true;
             }
         }
-        String rxaId = request.getHeader(RxaContant.RXA_ID_PREX);
+        String rxaId = request.getHeader(RxaContant.RXA_ID_PREFIX);
         String rxaSub = request.getHeader(RxaContant.RXA_SUB);
         if (!StringUtils.isEmpty(rxaId)) {
             RxaContext.bindRxa(() -> RxaContextPO.create(rxaId, RxaContextStatusEnum.SUB));
