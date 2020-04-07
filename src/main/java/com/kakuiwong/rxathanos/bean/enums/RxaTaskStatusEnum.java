@@ -23,6 +23,6 @@ public enum RxaTaskStatusEnum {
     public static RxaTaskStatusEnum of(String status) {
         return Arrays.stream(RxaTaskStatusEnum.values()).
                 filter(s -> s.status().equals(status)).
-                findFirst().orElseThrow(RxaThanosException::new);
+                findFirst().orElse(RxaTaskStatusEnum.FAIL);
     }
 }

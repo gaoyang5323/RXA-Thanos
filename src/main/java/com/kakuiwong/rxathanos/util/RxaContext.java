@@ -25,7 +25,6 @@ public class RxaContext {
     private final static ConcurrentHashMap<String, Thread> baseThreadMap = new ConcurrentHashMap(INITIALCAPACITY);
     private final static ConcurrentHashMap<String, Boolean> subStatusMap = new ConcurrentHashMap(INITIALCAPACITY);
 
-
     public static void subReady(String subId) {
         subStatusMap.put(subId, true);
     }

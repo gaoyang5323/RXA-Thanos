@@ -19,7 +19,7 @@ public class RxaFeignRequestInterception implements RequestInterceptor {
         String rxaId = RxaContext.getRxaId();
         if (!StringUtils.isEmpty(rxaId)) {
             String subId = IdGenerateUtil.nextId(RxaContant.RXA_SUB);
-            requestTemplate.header(RxaContant.RXA_HEADER, rxaId);
+            requestTemplate.header(RxaContant.RXA_ID_PREX, rxaId);
             requestTemplate.header(RxaContant.RXA_SUB, subId);
             RxaContext.changeSub(rxaId, subId, RxaTaskStatusEnum.BEGIN);
         }
