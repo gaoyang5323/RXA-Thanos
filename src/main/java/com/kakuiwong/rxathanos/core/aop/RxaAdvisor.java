@@ -1,5 +1,6 @@
 package com.kakuiwong.rxathanos.core.aop;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kakuiwong.rxathanos.annotation.RxaThanosTransactional;
 import com.kakuiwong.rxathanos.bean.RxaContextPO;
 import com.kakuiwong.rxathanos.bean.enums.RxaContextStatusEnum;
@@ -15,12 +16,15 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.http.MediaType;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
@@ -35,6 +39,8 @@ public class RxaAdvisor {
 
     @Autowired
     private RxaPublisher rxaPublisher;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private PlatformTransactionManager txManager;
 
@@ -127,8 +133,10 @@ public class RxaAdvisor {
     }
 
     private void flush(Object result) throws IOException {
-        PrintWriter writer = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse().getWriter();
-        writer.print(result);
+        HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        PrintWriter writer = response.getWriter();
+        writer.print(objectMapper.writeValueAsString(result));
         writer.flush();
         writer.close();
     }

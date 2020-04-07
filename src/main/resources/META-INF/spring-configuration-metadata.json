@@ -8,9 +8,9 @@
   ],
   "properties": [
     {
-      "name": "",
-      "type": "java.lang.Integer",
-      "description": ""
+      "name": "rxa.message.type",
+      "type": "com.kakuiwong.rxathanos.bean.enums.RxaMessageType",
+      "description": "default redis"
     }
   ],
   "hints": []

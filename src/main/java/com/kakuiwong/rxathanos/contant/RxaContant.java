@@ -11,4 +11,8 @@ public final class RxaContant {
     public static final String RXA_SUB = "RXA_SUB";
     public static final String RXA_PUBSUB_SPLIT = ":";
     public static final String REDIS_ONMESSAGE = "onMessage";
+    public static final String RXA_CONFIG_PREFIX = "rxa";
+    public static final String RXA_CONFIG_MESSSAGE = "message.type";
+    public static final String REDIS = "REDIS";
+    public static final String MQ = "MQ";
 }

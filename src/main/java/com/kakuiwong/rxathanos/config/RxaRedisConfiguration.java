@@ -7,6 +7,7 @@ import com.kakuiwong.rxathanos.core.message.RxaSubscribe;
 import com.kakuiwong.rxathanos.core.message.redis.RxaRedisPublisher;
 import com.kakuiwong.rxathanos.core.message.redis.RxaRedisSubscribeBase;
 import com.kakuiwong.rxathanos.core.message.redis.RxaRedisSubscribeSub;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -18,6 +19,10 @@ import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
  * @author gaoyang
  * @email 785175323@qq.com
  */
+@ConditionalOnProperty(prefix = RxaContant.RXA_CONFIG_PREFIX,
+        name = RxaContant.RXA_CONFIG_MESSSAGE,
+        havingValue = RxaContant.REDIS,
+        matchIfMissing = true)
 @Configuration
 public class RxaRedisConfiguration {
 
