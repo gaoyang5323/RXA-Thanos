@@ -1,7 +1,7 @@
-package com.kakuiwong.rxathanos.core.message.mq;
+package com.kakuiwong.rxathanos.core.message.mqtt;
 
 import com.kakuiwong.rxathanos.bean.enums.RxaTaskStatusEnum;
-import com.kakuiwong.rxathanos.config.RxaMqConfiguration;
+import com.kakuiwong.rxathanos.config.RxaMqttConfiguration;
 import com.kakuiwong.rxathanos.contant.RxaContant;
 import com.kakuiwong.rxathanos.core.message.RxaPublisher;
 import com.kakuiwong.rxathanos.util.RxaContext;
@@ -13,12 +13,12 @@ import org.springframework.transaction.TransactionStatus;
  * @author gaoyang
  * @email 785175323@qq.com
  */
-public class RxaMqPublisher implements RxaPublisher {
+public class RxaMqttPublisher implements RxaPublisher {
 
     @Autowired
-    RxaMqConfiguration.MqttGatewayBase mqttGatewayBase;
+    RxaMqttConfiguration.MqttGatewayBase mqttGatewayBase;
     @Autowired
-    RxaMqConfiguration.MqttGatewaySub mqttGatewaySub;
+    RxaMqttConfiguration.MqttGatewaySub mqttGatewaySub;
 
     @Override
     public void subRollbackAndSendBase(PlatformTransactionManager txManager, TransactionStatus transaction) {

@@ -5,5 +5,5 @@ package com.kakuiwong.rxathanos.bean.enums;
  * @email 785175323@qq.com
  */
 public enum RxaMessageType {
-    REDIS, MQ;
+    REDIS, MQ,MQTT;
 }
