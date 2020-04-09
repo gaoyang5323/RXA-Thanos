@@ -1,6 +1,6 @@
 package com.kakuiwong.rxathanos.util;
 
-import com.kakuiwong.rxathanos.bean.RxaRedisMessage;
+import com.kakuiwong.rxathanos.bean.RxaMessage;
 import com.kakuiwong.rxathanos.contant.RxaContant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,7 @@ public class RxaLogUtil {
         }
     }
 
-    public static String logMessage(RxaRedisMessage serialize) {
+    public static String logMessage(RxaMessage serialize) {
         StringBuilder append = new StringBuilder().
                 append("rxaId: ").
                 append(serialize.getRxaId()).

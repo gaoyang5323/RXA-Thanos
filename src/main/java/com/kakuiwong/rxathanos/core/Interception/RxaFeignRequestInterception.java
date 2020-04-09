@@ -4,7 +4,6 @@ import com.kakuiwong.rxathanos.bean.enums.RxaTaskStatusEnum;
 import com.kakuiwong.rxathanos.contant.RxaContant;
 import com.kakuiwong.rxathanos.util.IdGenerateUtil;
 import com.kakuiwong.rxathanos.util.RxaContext;
-import com.kakuiwong.rxathanos.util.RxaLogUtil;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import org.springframework.util.StringUtils;

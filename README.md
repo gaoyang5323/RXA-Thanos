@@ -1,23 +1,33 @@
-RXA-Thanos是一个SpringCloud 分布式事务解决方案,基于Redis框架发布订阅方式通信,汲取了XA两阶段提交和最大努力一阶段提交等思想,倾向于强一致性事务.目前处于完成功能阶段,等待进一步测试优化及重构;
+RXA-Thanos是一个SpringCloud 分布式事务解决方案,基于消息通信,汲取了XA两阶段提交和最大努力一阶段提交等思想,倾向于强一致性事务.目前处于完成功能阶段,等待进一步测试优化及重构;
 
 1.集成方式:
 
-基于Redis,所以需要引入相应依赖
 
             <dependency>
                 <groupId>com.github.785175323</groupId>
                 <artifactId>rxa-thanos</artifactId>
                 <version>1.0-SNAPSHOT</version>
             </dependency>
+            <!--消息基于Redis-->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-data-redis</artifactId>
+            </dependency>
+             <!--消息基于rabbitMQ-->
+            <dependency>
+                  <groupId>org.springframework.boot</groupId>
+                  <artifactId>spring-boot-starter-amqp</artifactId>
             </dependency>
 
 2.使用:
 
 直接引入注解到业务方法,其中注解提供了一系列默认及可选填参数
-
+       
+    配置文件application.yml:
+    rxa:
+      message:
+        type: redis #默认
+    
     @RxaThanosTransactional
     
         //超时时间      

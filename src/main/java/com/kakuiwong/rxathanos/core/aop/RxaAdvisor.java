@@ -23,11 +23,11 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -59,14 +59,14 @@ public class RxaAdvisor {
                 RxaContextStatusEnum.BASE));
         RxaThanosTransactional annotation = annotation(joinPoint);
         Object result = null;
-        boolean isRollbacked = false;
+        AtomicBoolean isRollbacked = new AtomicBoolean(false);
         TransactionStatus currentTransaction = getTransactionStatus(annotation);
         try {
             result = joinPoint.proceed();
             boolean baseTransaction = RxaContext.isBase();
             boolean subTransaction = !baseTransaction;
             if (baseTransaction) {
-                isRollbacked = handleBaseTransaction(currentTransaction, annotation, result);
+                handleBaseTransaction(currentTransaction, annotation, result, isRollbacked);
             }
             if (subTransaction) {
                 handleSubTransaction(currentTransaction, annotation, result);
@@ -92,29 +92,28 @@ public class RxaAdvisor {
         }
     }
 
-    private boolean handleBaseTransaction(TransactionStatus transaction,
-                                          RxaThanosTransactional annotation, Object result) throws IOException {
-        boolean isRollbacked = false;
+    private void handleBaseTransaction(TransactionStatus transaction,
+                                       RxaThanosTransactional annotation, Object result,
+                                       AtomicBoolean isRollbacked) throws IOException {
         if (!RxaContext.isReady(RxaContext.getRxaId())) {
             if (RxaContext.isFail(RxaContext.getRxaId())) {
-                isRollbacked = true;
+                isRollbacked.set(true);
                 baseRollbackAndsendSubsThrow(transaction, "other services failed");
             }
             RxaContext.bindThread(RxaContext.getRxaId());
             park(annotation);
             boolean fail = RxaContext.isFail(RxaContext.getRxaId());
             if (fail || !RxaContext.isReady(RxaContext.getRxaId())) {
-                isRollbacked = true;
+                isRollbacked.set(true);
                 baseRollbackAndsendSubsThrow(transaction, fail ? "other services failed" : "other services timed out");
             }
         }
         rxaPublisher.baseCommitAndSendSubs(txManager, transaction);
         flush(result);
-        return isRollbacked;
     }
 
     private void rollbackByAnno(RxaThanosTransactional annotation, Throwable ex,
-                                TransactionStatus transaction, boolean isRollbacked) throws Throwable {
+                                TransactionStatus transaction, AtomicBoolean isRollbacked) throws Throwable {
         Class<? extends Throwable>[] classes = annotation.rollbackFor();
         if (classes.length > 0) {
             boolean isRollback = Arrays.stream(classes).anyMatch(cla -> cla.isAssignableFrom(ex.getClass()));
@@ -122,7 +121,7 @@ public class RxaAdvisor {
                 throw ex;
             }
         }
-        if (!isRollbacked) {
+        if (!isRollbacked.get()) {
             if (RxaContext.isBase()) {
                 baseRollbackAndsendSubsThrow(transaction, null);
             } else {

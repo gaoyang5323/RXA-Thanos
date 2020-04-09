@@ -1,18 +1,17 @@
 package com.kakuiwong.rxathanos.config;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import com.kakuiwong.rxathanos.core.Interception.RxaFeignRequestInterception;
 import com.kakuiwong.rxathanos.core.Interception.RxaHandlerInterceptor;
 import com.kakuiwong.rxathanos.core.Interception.RxaRequestInterception;
 import com.kakuiwong.rxathanos.core.aop.RxaAdvisor;
+import feign.Feign;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +21,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.io.IOException;
 import java.util.Collections;
 
 /**
@@ -51,6 +49,7 @@ public class RxaConfiguration implements WebMvcConfigurer, InitializingBean {
         registry.addInterceptor(new RxaHandlerInterceptor()).addPathPatterns("/**");
     }
 
+    @ConditionalOnClass(Feign.class)
     @Bean
     public RxaFeignRequestInterception rxaFeignRequestInterception() {
         return new RxaFeignRequestInterception();

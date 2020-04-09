@@ -1,7 +1,5 @@
 package com.kakuiwong.rxathanos.bean.enums;
 
-import com.kakuiwong.rxathanos.exception.RxaThanosException;
-
 import java.util.Arrays;
 
 /**

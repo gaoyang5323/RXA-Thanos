@@ -15,4 +15,7 @@ public final class RxaContant {
     public static final String RXA_CONFIG_MESSSAGE = "message.type";
     public static final String REDIS = "REDIS";
     public static final String MQ = "MQ";
+    public static final String RXA_BASE_QUEUE = "RXA_BASE_QUEUE";
+    public static final String RXA_SUB_QUEUE = "RXA_SUB_QUEUE";
+    public static final String RXA_TOPICEXCHANGE = "RXA_TOPICEXCHANGE";
 }

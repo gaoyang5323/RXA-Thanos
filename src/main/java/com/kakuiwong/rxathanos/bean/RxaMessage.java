@@ -7,7 +7,7 @@ import com.kakuiwong.rxathanos.contant.RxaContant;
  * @author gaoyang
  * @email 785175323@qq.com
  */
-public class RxaRedisMessage {
+public class RxaMessage {
 
     private String rxaId;
     private String subId;
@@ -25,13 +25,13 @@ public class RxaRedisMessage {
         return statusEnum;
     }
 
-    public RxaRedisMessage(String rxaId, String subId, RxaTaskStatusEnum statusEnum) {
+    public RxaMessage(String rxaId, String subId, RxaTaskStatusEnum statusEnum) {
         this.rxaId = rxaId;
         this.subId = subId;
         this.statusEnum = statusEnum;
     }
 
-    public static RxaRedisMessage serialize(String message) {
+    public static RxaMessage serialize(String message) {
         String[] split = message.split(RxaContant.RXA_PUBSUB_SPLIT);
         String rxaId = null;
         String subId = null;
@@ -47,6 +47,6 @@ public class RxaRedisMessage {
                 status = split[2];
         }
         RxaTaskStatusEnum statusEnum = RxaTaskStatusEnum.of(status);
-        return new RxaRedisMessage(rxaId, subId, statusEnum);
+        return new RxaMessage(rxaId, subId, statusEnum);
     }
 }
