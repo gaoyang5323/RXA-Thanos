@@ -82,8 +82,8 @@ public class RxaAdvisor {
                                       RxaThanosTransactional annotation, Object result) throws IOException {
         RxaContext.bindThread(RxaContext.getSubId());
         RxaContext.subBegin(RxaContext.getSubId());
-        rxaPublisher.subReadyAndSendBase();
         flush(result);
+        rxaPublisher.subReadyAndSendBase();
         park(annotation);
         if (RxaContext.subIsReady(RxaContext.getSubId())) {
             subCommit(transaction);

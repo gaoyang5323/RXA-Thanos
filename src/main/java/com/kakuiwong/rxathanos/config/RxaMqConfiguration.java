@@ -6,10 +6,7 @@ import com.kakuiwong.rxathanos.core.message.RxaSubscribe;
 import com.kakuiwong.rxathanos.core.message.rabbitmq.RxaMqPublisher;
 import com.kakuiwong.rxathanos.core.message.rabbitmq.RxaMqSubscribeBase;
 import com.kakuiwong.rxathanos.core.message.rabbitmq.RxaMqSubscribeSub;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,8 +23,8 @@ import org.springframework.context.annotation.Configuration;
 public class RxaMqConfiguration {
 
     @Bean
-    TopicExchange topicExchangeRxa() {
-        return new TopicExchange(RxaContant.RXA_TOPICEXCHANGE);
+    DirectExchange directExchange() {
+        return new DirectExchange(RxaContant.RXA_TOPICEXCHANGE);
     }
 
     @Bean
@@ -42,12 +39,12 @@ public class RxaMqConfiguration {
 
     @Bean
     public Binding bindingExchangeWithRxaBase() {
-        return BindingBuilder.bind(queueRxaBase()).to(topicExchangeRxa()).with(RxaContant.RXA_BASE_QUEUE);
+        return BindingBuilder.bind(queueRxaBase()).to(directExchange()).with(RxaContant.RXA_BASE_QUEUE);
     }
 
     @Bean
     public Binding bindingExchangeWithRxaSub() {
-        return BindingBuilder.bind(queueRxaSub()).to(topicExchangeRxa()).with(RxaContant.RXA_SUB_QUEUE);
+        return BindingBuilder.bind(queueRxaSub()).to(directExchange()).with(RxaContant.RXA_SUB_QUEUE);
     }
 
     @Bean
