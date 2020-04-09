@@ -1,10 +1,10 @@
 package com.kakuiwong.rxathanos.core.message.mq;
 
 import com.kakuiwong.rxathanos.bean.enums.RxaTaskStatusEnum;
+import com.kakuiwong.rxathanos.config.RxaMqConfiguration;
 import com.kakuiwong.rxathanos.contant.RxaContant;
 import com.kakuiwong.rxathanos.core.message.RxaPublisher;
 import com.kakuiwong.rxathanos.util.RxaContext;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -16,19 +16,21 @@ import org.springframework.transaction.TransactionStatus;
 public class RxaMqPublisher implements RxaPublisher {
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    RxaMqConfiguration.MqttGatewayBase mqttGatewayBase;
+    @Autowired
+    RxaMqConfiguration.MqttGatewaySub mqttGatewaySub;
 
     @Override
     public void subRollbackAndSendBase(PlatformTransactionManager txManager, TransactionStatus transaction) {
         txManager.rollback(transaction);
-        send(RxaContant.RXA_BASE_QUEUE, RxaContext.getRxaId() +
+        sendToBase(RxaContant.RXA_BASE_TOPIC, RxaContext.getRxaId() +
                 RxaContant.RXA_PUBSUB_SPLIT + RxaContext.getSubId() +
                 RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.FAIL.status());
     }
 
     @Override
     public void subReadyAndSendBase() {
-        send(RxaContant.RXA_BASE_QUEUE, RxaContext.getRxaId() +
+        sendToBase(RxaContant.RXA_BASE_TOPIC, RxaContext.getRxaId() +
                 RxaContant.RXA_PUBSUB_SPLIT + RxaContext.getSubId() +
                 RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.READY.status());
     }
@@ -37,18 +39,22 @@ public class RxaMqPublisher implements RxaPublisher {
     public void baseCommitAndSendSubs(PlatformTransactionManager txManager, TransactionStatus transaction) {
         txManager.commit(transaction);
         RxaContext.subIds(RxaContext.getRxaId()).stream().forEach(id -> {
-            send(RxaContant.RXA_SUB_QUEUE, id + RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.READY.status());
+            sendToSub(RxaContant.RXA_SUB_TOPIC, id + RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.READY.status());
         });
     }
 
     @Override
     public void baseRollbackAndSendSubs() {
         RxaContext.subIds(RxaContext.getRxaId()).stream().forEach(id -> {
-            send(RxaContant.RXA_SUB_QUEUE, id + RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.FAIL.status());
+            sendToSub(RxaContant.RXA_SUB_TOPIC, id + RxaContant.RXA_PUBSUB_SPLIT + RxaTaskStatusEnum.FAIL.status());
         });
     }
 
-    private void send(String routingKey, Object message) {
-        rabbitTemplate.convertAndSend(RxaContant.RXA_TOPICEXCHANGE, routingKey, message);
+    private void sendToBase(String topic, String message) {
+        mqttGatewayBase.sendToBase(message, topic);
+    }
+
+    private void sendToSub(String topic, String message) {
+        mqttGatewaySub.sendToSub(message, topic);
     }
 }

@@ -8,16 +8,6 @@ RXA-Thanos是一个SpringCloud 分布式事务解决方案,基于消息通信,�
                 <artifactId>rxa-thanos</artifactId>
                 <version>1.0-SNAPSHOT</version>
             </dependency>
-            <!--消息基于Redis-->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-data-redis</artifactId>
-            </dependency>
-             <!--消息基于rabbitMQ-->
-            <dependency>
-                  <groupId>org.springframework.boot</groupId>
-                  <artifactId>spring-boot-starter-amqp</artifactId>
-            </dependency>
 
 2.使用:
 
@@ -26,7 +16,7 @@ RXA-Thanos是一个SpringCloud 分布式事务解决方案,基于消息通信,�
     配置文件application.yml:
     rxa:
       message:
-        type: redis #默认
+        type: redis #默认   mq:使用mqtt
     
     @RxaThanosTransactional
     

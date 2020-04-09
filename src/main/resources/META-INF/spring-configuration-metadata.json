@@ -11,6 +11,31 @@
       "name": "rxa.message.type",
       "type": "com.kakuiwong.rxathanos.bean.enums.RxaMessageType",
       "description": "default redis"
+    },
+    {
+      "name": "rxa.mqtt.username",
+      "type": "java.lang.String",
+      "description": ""
+    },
+    {
+      "name": "rxa.mqtt.password",
+      "type": "java.lang.String",
+      "description": ""
+    },
+    {
+      "name": "rxa.mqtt.hostUrls",
+      "type": "java.lang.String",
+      "description": ""
+    },
+    {
+      "name": "rxa.mqtt.clientId",
+      "type": "java.lang.String",
+      "description": "default rxa"
+    },
+    {
+      "name": "rxa.mqtt.completionTimeout",
+      "type": "java.lang.Integer",
+      "description": "default 3000 ms"
     }
   ],
   "hints": []
